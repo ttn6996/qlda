@@ -1,0 +1,4 @@
+# Ignore raw camera photo uploads and intermediate rotation folders
+2aobor8nm*.jpg
+processed_pages/
+*.py
