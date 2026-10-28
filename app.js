@@ -1,6 +1,6 @@
 /**
  * Logic điều khiển tra cứu ngân hàng câu hỏi Quản lý dự án phần mềm (Câu 1 - Câu 38)
- * Sử dụng toàn bộ biểu tượng vector SVG chuyên nghiệp, hỗ trợ Mục lục câu hỏi riêng biệt.
+ * Tối ưu hóa 100% Mobile & Desktop, sử dụng Vector SVG nét mảnh, hỗ trợ Mục lục câu hỏi riêng.
  */
 
 (function () {
@@ -49,9 +49,23 @@
   const menuToggleBtn = document.getElementById('menuToggleBtn');
   const appSidebar = document.getElementById('appSidebar');
   const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+  const sidebarCloseBtn = document.getElementById('sidebarCloseBtn');
   const backToTopBtn = document.getElementById('backToTopBtn');
   const toastEl = document.getElementById('toastNotice');
   const toastText = document.getElementById('toastText');
+
+  // Mobile elements
+  const mobileSearchToggleBtn = document.getElementById('mobileSearchToggleBtn');
+  const mobileSearchBar = document.getElementById('mobileSearchBar');
+  const mobileSearchInput = document.getElementById('mobileSearchInput');
+  const mobileSearchClearBtn = document.getElementById('mobileSearchClearBtn');
+  const mobileNavTocBtn = document.getElementById('mobileNavTocBtn');
+  const mobileNavSearchBtn = document.getElementById('mobileNavSearchBtn');
+  const mobileNavStarredBtn = document.getElementById('mobileNavStarredBtn');
+  const mobileStarredText = document.getElementById('mobileStarredText');
+  const mobileNavThemeBtn = document.getElementById('mobileNavThemeBtn');
+  const mobileThemeIconContainer = document.getElementById('mobileThemeIconContainer');
+  const mobileNavTopBtn = document.getElementById('mobileNavTopBtn');
 
   // Lightbox Elements
   const lightboxModal = document.getElementById('lightboxModal');
@@ -208,20 +222,16 @@
     const normQuery = removeVietnameseTones(rawQuery);
 
     return QUESTIONS_DATA.filter(q => {
-      // Category filter
       if (currentCategory !== 'all' && q.category !== currentCategory) {
         return false;
       }
 
-      // Starred filter
       if (showOnlyStarred && !starredQuestions.has(q.id)) {
         return false;
       }
 
-      // Search filter
       if (!rawQuery) return true;
 
-      // Match question ID directly: "14", "cau 14", "câu 14"
       if (rawQuery === String(q.id) || rawQuery === `cau ${q.id}` || rawQuery === `câu ${q.id}`) {
         return true;
       }
@@ -299,10 +309,9 @@
     if (currentViewMode !== 'reading') {
       setViewMode('reading');
     }
-    // Small timeout to let DOM render reading view
     setTimeout(() => {
       scrollToQuestion(id);
-    }, 60);
+    }, 80);
   }
 
   // Scroll to question smoothly
@@ -463,10 +472,7 @@
     tocChaptersGrid.innerHTML = '';
 
     CHAPTERS_DATA.forEach(chap => {
-      // Get questions in this chapter
       const chapterQuestions = QUESTIONS_DATA.filter(q => chap.qIds.includes(q.id));
-      
-      // Filter if there's a filter query
       const visibleQuestions = chapterQuestions.filter(q => {
         if (!normFilter) return true;
         const normTitle = removeVietnameseTones(q.title);
@@ -506,7 +512,6 @@
         row.href = `#cau-${q.id}`;
         row.className = 'toc-q-row';
 
-        // Badges for special questions
         let badgeHtml = '';
         if (q.id === 30) {
           badgeHtml = `<span class="badge-figure">Có sơ đồ quy trình</span>`;
@@ -526,7 +531,7 @@
           <div class="toc-q-right">
             ${badgeHtml}
             <span class="toc-q-page">${q.bookPage}</span>
-            ${isStarred ? `<span style="color:var(--accent-gold);">${ICONS.starFilled}</span>` : ''}
+            ${isStarred ? `<span style="color:var(--accent-gold); display:inline-flex;">${ICONS.starFilled}</span>` : ''}
             ${ICONS.chevronRight}
           </div>
         `;
@@ -749,37 +754,69 @@
     if (e.target === lightboxModal) closeLightbox();
   });
 
-  // Search input handlers
-  searchInput.addEventListener('input', (e) => {
-    searchQuery = e.target.value;
-    searchClearBtn.style.display = searchQuery ? 'flex' : 'none';
+  // Search input handlers (Desktop & Mobile synchronized)
+  function handleSearchUpdate(val) {
+    searchQuery = val;
+    searchInput.value = val;
+    if (mobileSearchInput) mobileSearchInput.value = val;
+
+    searchClearBtn.style.display = val ? 'flex' : 'none';
+    if (mobileSearchClearBtn) mobileSearchClearBtn.style.display = val ? 'flex' : 'none';
+
     renderAll();
-  });
+  }
+
+  searchInput.addEventListener('input', (e) => handleSearchUpdate(e.target.value));
+  if (mobileSearchInput) {
+    mobileSearchInput.addEventListener('input', (e) => handleSearchUpdate(e.target.value));
+  }
 
   searchClearBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    searchQuery = '';
-    searchClearBtn.style.display = 'none';
+    handleSearchUpdate('');
     searchInput.focus();
-    renderAll();
   });
 
+  if (mobileSearchClearBtn) {
+    mobileSearchClearBtn.addEventListener('click', () => {
+      handleSearchUpdate('');
+      mobileSearchInput.focus();
+    });
+  }
+
   resetSearchBtn.addEventListener('click', () => {
-    searchInput.value = '';
-    searchQuery = '';
+    handleSearchUpdate('');
     currentCategory = 'all';
     showOnlyStarred = false;
     toggleStarredFilterBtn.classList.remove('active');
-    searchClearBtn.style.display = 'none';
+    if (mobileNavStarredBtn) {
+      mobileNavStarredBtn.classList.remove('starred-active');
+      mobileStarredText.textContent = 'Đã lưu';
+    }
     renderAll();
   });
 
+  // Mobile search bar toggle button in header
+  if (mobileSearchToggleBtn) {
+    mobileSearchToggleBtn.addEventListener('click', () => {
+      mobileSearchBar.classList.toggle('active');
+      if (mobileSearchBar.classList.contains('active')) {
+        mobileSearchInput.focus();
+      }
+    });
+  }
+
   // Star filter toggle
-  toggleStarredFilterBtn.addEventListener('click', () => {
+  function toggleStarredFilter() {
     showOnlyStarred = !showOnlyStarred;
     toggleStarredFilterBtn.classList.toggle('active', showOnlyStarred);
+    if (mobileNavStarredBtn) {
+      mobileNavStarredBtn.classList.toggle('starred-active', showOnlyStarred);
+      mobileStarredText.textContent = showOnlyStarred ? 'Đang lọc' : 'Đã lưu';
+    }
     renderAll();
-  });
+  }
+
+  toggleStarredFilterBtn.addEventListener('click', toggleStarredFilter);
 
   // Theme Toggle (Light / Dark)
   function initTheme() {
@@ -796,21 +833,25 @@
     if (theme === 'dark') {
       document.documentElement.setAttribute('data-theme', 'dark');
       themeIconContainer.innerHTML = ICONS.sun;
+      if (mobileThemeIconContainer) mobileThemeIconContainer.innerHTML = ICONS.sun;
       themeToggleBtn.title = 'Chuyển sang giao diện Sáng';
     } else {
       document.documentElement.removeAttribute('data-theme');
       themeIconContainer.innerHTML = ICONS.moon;
+      if (mobileThemeIconContainer) mobileThemeIconContainer.innerHTML = ICONS.moon;
       themeToggleBtn.title = 'Chuyển sang giao diện Tối';
     }
     localStorage.setItem('theme_preference', theme);
   }
 
-  themeToggleBtn.addEventListener('click', () => {
+  function toggleTheme() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     applyTheme(isDark ? 'light' : 'dark');
-  });
+  }
 
-  // Font Size Adjuster
+  themeToggleBtn.addEventListener('click', toggleTheme);
+
+  // Font Size Adjuster (Desktop)
   let baseFontSize = parseInt(localStorage.getItem('user_font_size') || '16', 10);
   document.documentElement.style.setProperty('--font-base-size', `${baseFontSize}px`);
 
@@ -844,10 +885,38 @@
   });
 
   sidebarBackdrop.addEventListener('click', closeSidebar);
+  if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
 
   function closeSidebar() {
     appSidebar.classList.remove('open');
     sidebarBackdrop.classList.remove('open');
+  }
+
+  // Mobile Bottom Navigation Bar Actions
+  if (mobileNavTocBtn) {
+    mobileNavTocBtn.addEventListener('click', openTocModal);
+  }
+
+  if (mobileNavSearchBtn) {
+    mobileNavSearchBtn.addEventListener('click', () => {
+      mobileSearchBar.classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setTimeout(() => mobileSearchInput.focus(), 250);
+    });
+  }
+
+  if (mobileNavStarredBtn) {
+    mobileNavStarredBtn.addEventListener('click', toggleStarredFilter);
+  }
+
+  if (mobileNavThemeBtn) {
+    mobileNavThemeBtn.addEventListener('click', toggleTheme);
+  }
+
+  if (mobileNavTopBtn) {
+    mobileNavTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
   }
 
   // Scrollspy & Back-to-top
@@ -885,25 +954,22 @@
 
   // Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
-    // Focus search on '/' or 'Ctrl+K'
-    if ((e.key === '/' || (e.ctrlKey && e.key.toLowerCase() === 'k')) && document.activeElement !== searchInput && document.activeElement !== tocModalSearchInput) {
+    if ((e.key === '/' || (e.ctrlKey && e.key.toLowerCase() === 'k')) && document.activeElement !== searchInput && document.activeElement !== tocModalSearchInput && document.activeElement !== mobileSearchInput) {
       e.preventDefault();
       searchInput.focus();
       searchInput.select();
     }
-    // Open TOC Modal on key 'm' / 'M'
-    if ((e.key === 'm' || e.key === 'M') && document.activeElement !== searchInput && document.activeElement !== tocModalSearchInput) {
+    if ((e.key === 'm' || e.key === 'M') && document.activeElement !== searchInput && document.activeElement !== tocModalSearchInput && document.activeElement !== mobileSearchInput) {
       e.preventDefault();
       openTocModal();
     }
-    // Close modals on 'Escape'
     if (e.key === 'Escape') {
       if (lightboxModal.classList.contains('open')) {
         closeLightbox();
       } else if (tocModal.classList.contains('open')) {
         closeTocModal();
-      } else if (document.activeElement === searchInput) {
-        searchInput.blur();
+      } else if (document.activeElement === searchInput || document.activeElement === mobileSearchInput) {
+        document.activeElement.blur();
       }
     }
   });
