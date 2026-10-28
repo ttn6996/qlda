@@ -50,6 +50,9 @@
   const tocExpandAllText = document.getElementById('tocExpandAllText');
 
   const toggleLearnedFilterBtn = document.getElementById('toggleLearnedFilterBtn');
+  const headerFlashcardBtn = document.getElementById('headerFlashcardBtn');
+  const sidebarModeReadingBtn = document.getElementById('sidebarModeReadingBtn');
+  const sidebarModeFlashcardBtn = document.getElementById('sidebarModeFlashcardBtn');
   const headerLearnedBtnText = document.getElementById('headerLearnedBtnText');
   const learnedCountText = document.getElementById('learnedCountText');
   const learnedPercentText = document.getElementById('learnedPercentText');
@@ -429,6 +432,68 @@
     questionsContainer.innerHTML = '';
 
     if (filtered.length === 0) {
+      if (statusFilter === 'learned') {
+        questionsContainer.innerHTML = `
+          <div class="empty-state">
+            <div style="font-size:2.8rem; margin-bottom: 0.75rem;">📚✨</div>
+            <h3 style="margin-bottom:0.5rem; color:var(--text-primary); font-size:1.25rem;">Chưa có câu hỏi nào được đánh dấu "Đã học"</h3>
+            <p style="max-width:520px; margin:0 auto 1.25rem; font-size:0.95rem; color:var(--text-secondary); line-height:1.6;">
+              Khi đọc câu hỏi, bạn nhấn nút <strong>"Đánh dấu đã học"</strong> ở góc trên hoặc nút màu xanh ở chân mỗi câu. Hoặc bạn có thể tự kiểm tra bằng <strong>Thẻ ghi nhớ Flashcard</strong> và bấm <strong>"Đã thuộc"</strong> để tích lũy tiến độ.
+            </p>
+            <div style="display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap; margin-top:0.5rem;">
+              <button class="primary-btn" id="emptyResetLearnedFilterBtn" style="padding:0.65rem 1.25rem; font-size:0.9rem; cursor:pointer; border-radius:var(--radius-sm); background:var(--primary); color:#fff; border:none; font-weight:600;">
+                Xem tất cả 38 câu hỏi
+              </button>
+              <button class="secondary-btn" id="emptyOpenFlashcardBtn" style="padding:0.65rem 1.25rem; font-size:0.9rem; cursor:pointer; border-radius:var(--radius-sm); border:1px solid var(--border-color); background:var(--bg-surface); color:var(--text-primary); font-weight:600;">
+                Mở Thẻ Flashcard tự kiểm tra 🎴
+              </button>
+            </div>
+          </div>
+        `;
+        const resetBtn = document.getElementById('emptyResetLearnedFilterBtn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', () => {
+            statusFilter = 'all';
+            updateFilterControlsUI();
+            renderAll();
+          });
+        }
+        const fcBtn = document.getElementById('emptyOpenFlashcardBtn');
+        if (fcBtn) {
+          fcBtn.addEventListener('click', () => {
+            setViewMode('flashcard');
+          });
+        }
+        return;
+      }
+
+      if (statusFilter === 'starred' || showOnlyStarred) {
+        questionsContainer.innerHTML = `
+          <div class="empty-state">
+            <div style="font-size:2.8rem; margin-bottom: 0.75rem;">⭐</div>
+            <h3 style="margin-bottom:0.5rem; color:var(--text-primary); font-size:1.25rem;">Chưa có câu hỏi nào được đánh dấu sao</h3>
+            <p style="max-width:520px; margin:0 auto 1.25rem; font-size:0.95rem; color:var(--text-secondary); line-height:1.6;">
+              Nhấn vào biểu tượng ngôi sao <strong>⭐</strong> ở góc trên mỗi câu hỏi để lưu lại các câu cần đặc biệt lưu ý khi đi thi.
+            </p>
+            <div style="display:flex; gap:0.75rem; justify-content:center; flex-wrap:wrap; margin-top:0.5rem;">
+              <button class="primary-btn" id="emptyResetStarredFilterBtn" style="padding:0.65rem 1.25rem; font-size:0.9rem; cursor:pointer; border-radius:var(--radius-sm); background:var(--primary); color:#fff; border:none; font-weight:600;">
+                Xem tất cả 38 câu hỏi
+              </button>
+            </div>
+          </div>
+        `;
+        const resetBtn = document.getElementById('emptyResetStarredFilterBtn');
+        if (resetBtn) {
+          resetBtn.addEventListener('click', () => {
+            statusFilter = 'all';
+            showOnlyStarred = false;
+            updateFilterControlsUI();
+            renderAll();
+          });
+        }
+        return;
+      }
+
       questionsContainer.innerHTML = `
         <div class="empty-state">
           ${ICONS.searchEmpty}
@@ -457,7 +522,7 @@
           <div class="card-actions">
             <button class="learned-toggle-btn ${isLearned ? 'is-learned' : ''}" data-toggle-learned="${q.id}" title="${isLearned ? 'Bỏ đánh dấu đã học' : 'Đánh dấu đã học câu này'}">
               ${isLearned ? ICONS.checkCircleFilled : ICONS.checkCircleOutline}
-              <span>${isLearned ? 'Đã học' : 'Đánh dấu đã học'}</span>
+              <span>${isLearned ? 'Đã học ✓' : 'Đánh dấu đã học'}</span>
             </button>
             <button class="icon-btn ${isStarred ? 'starred' : ''}" data-star="${q.id}" title="${isStarred ? 'Bỏ đánh dấu' : 'Đánh dấu câu này'}">
               ${isStarred ? ICONS.starFilled : ICONS.starOutline}
@@ -492,6 +557,10 @@
         <div class="card-footer">
           ${footerOriginalBtn}
           <div class="card-footer-right">
+            <button class="footer-learned-btn ${isLearned ? 'is-learned' : ''}" data-toggle-learned="${q.id}" title="${isLearned ? 'Bỏ đánh dấu đã học' : 'Đánh dấu đã học câu này'}">
+              ${isLearned ? ICONS.checkCircleFilled : ICONS.checkCircleOutline}
+              <span>${isLearned ? '✓ Đã học câu này' : 'Đánh dấu đã học'}</span>
+            </button>
             <button class="flashcard-jump-btn" data-fc-jump="${q.id}" title="Luyện thẻ ghi nhớ cho câu này">
               ${ICONS.flashcard}
               <span>Học Flashcard</span>
@@ -770,6 +839,26 @@
   // View Mode Switching
   function setViewMode(mode) {
     currentViewMode = mode;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Sync header Flashcard button
+    if (headerFlashcardBtn) {
+      headerFlashcardBtn.classList.toggle('active', mode === 'flashcard');
+    }
+
+    // Sync sidebar mode selector
+    if (sidebarModeReadingBtn) {
+      sidebarModeReadingBtn.classList.toggle('active', mode === 'reading');
+    }
+    if (sidebarModeFlashcardBtn) {
+      sidebarModeFlashcardBtn.classList.toggle('active', mode === 'flashcard');
+    }
+
+    // Sync mobile navigation bar
+    if (mobileNavFlashcardBtn) {
+      mobileNavFlashcardBtn.classList.toggle('active', mode === 'flashcard');
+    }
+
     if (mode === 'reading') {
       viewReadingBtn.classList.add('active');
       viewTocBtn.classList.remove('active');
@@ -803,6 +892,21 @@
   viewTocBtn.addEventListener('click', () => setViewMode('toc'));
   if (viewFlashcardBtn) {
     viewFlashcardBtn.addEventListener('click', () => setViewMode('flashcard'));
+  }
+  if (headerFlashcardBtn) {
+    headerFlashcardBtn.addEventListener('click', () => {
+      if (currentViewMode === 'flashcard') {
+        setViewMode('reading');
+      } else {
+        setViewMode('flashcard');
+      }
+    });
+  }
+  if (sidebarModeReadingBtn) {
+    sidebarModeReadingBtn.addEventListener('click', () => setViewMode('reading'));
+  }
+  if (sidebarModeFlashcardBtn) {
+    sidebarModeFlashcardBtn.addEventListener('click', () => setViewMode('flashcard'));
   }
 
   // Expand / Collapse All Chapters in TOC View
@@ -1549,6 +1653,14 @@
     if ((e.key === 'm' || e.key === 'M') && document.activeElement !== searchInput && document.activeElement !== tocModalSearchInput && document.activeElement !== mobileSearchInput) {
       e.preventDefault();
       openTocModal();
+    }
+    if ((e.key === 'f' || e.key === 'F') && document.activeElement !== searchInput && document.activeElement !== tocModalSearchInput && document.activeElement !== mobileSearchInput) {
+      e.preventDefault();
+      if (currentViewMode === 'flashcard') {
+        setViewMode('reading');
+      } else {
+        setViewMode('flashcard');
+      }
     }
     if (e.key === 'Escape') {
       if (lightboxModal.classList.contains('open')) {
