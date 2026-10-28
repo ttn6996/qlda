@@ -86,6 +86,15 @@
         <span>Mục lục</span>
       </button>
 
+      <!-- Learned Filter Button -->
+      <button class="action-btn desktop-tablet-btn" id="toggleLearnedFilterBtn" title="Lọc các câu hỏi đã học">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"></circle>
+          <polyline points="9 12 11.5 14.5 16 9.5"></polyline>
+        </svg>
+        <span id="headerLearnedBtnText">Đã học</span>
+      </button>
+
       <!-- Star Filter Button -->
       <button class="action-btn desktop-tablet-btn" id="toggleStarredFilterBtn" title="Lọc các câu hỏi đã lưu đánh dấu">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -182,7 +191,7 @@
         </div>
       </div>
 
-      <!-- View Mode Tabs Bar: Đọc chi tiết vs Mục lục tổng quan -->
+      <!-- View Mode Tabs Bar: Đọc chi tiết vs Mục lục tổng quan vs Flashcard -->
       <div class="view-switch-bar">
         <div class="view-switch-group">
           <button class="view-switch-btn active" id="viewReadingBtn">
@@ -203,17 +212,54 @@
             </svg>
             <span>Mục lục câu hỏi</span>
           </button>
+          <button class="view-switch-btn" id="viewFlashcardBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+              <line x1="2" y1="10" x2="22" y2="10"></line>
+            </svg>
+            <span>Thẻ ghi nhớ (Flashcard)</span>
+          </button>
         </div>
 
         <div class="view-switch-info">
-          <span>Tổng số <strong>38 câu hỏi</strong></span>
+          <div class="study-progress-card" id="studyProgressCard" title="Tiến độ ôn tập câu hỏi">
+            <div class="study-progress-header">
+              <span class="study-progress-title">Đã học:</span>
+              <span class="study-progress-stat"><strong id="learnedCountText">0</strong>/38 câu (<span id="learnedPercentText">0%</span>)</span>
+            </div>
+            <div class="study-progress-track">
+              <div class="study-progress-fill" id="learnedProgressFill" style="width: 0%;"></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Category Filter Chips (Visible in Reading View) -->
-      <div class="category-filter-wrapper" id="categoryFilterWrapper">
-        <div class="category-chips" id="categoryChips">
-          <!-- Filled by JS -->
+      <!-- Filter Controls (Status Filters & Categories) -->
+      <div class="filter-controls-container" id="filterControlsContainer">
+        <div class="status-filter-pills" id="statusFilterPills">
+          <button class="status-pill active" data-status="all">
+            <span>Tất cả</span>
+            <span class="status-pill-count" id="countAllPill">38</span>
+          </button>
+          <button class="status-pill pill-unlearned" data-status="unlearned">
+            <span>Chưa học</span>
+            <span class="status-pill-count" id="countUnlearnedPill">38</span>
+          </button>
+          <button class="status-pill pill-learned" data-status="learned">
+            <span>Đã học</span>
+            <span class="status-pill-count" id="countLearnedPill">0</span>
+          </button>
+          <button class="status-pill pill-starred" data-status="starred">
+            <span>Đã lưu ⭐</span>
+            <span class="status-pill-count" id="countStarredPill">0</span>
+          </button>
+        </div>
+
+        <!-- Category Filter Chips (Visible in Reading View) -->
+        <div class="category-filter-wrapper" id="categoryFilterWrapper">
+          <div class="category-chips" id="categoryChips">
+            <!-- Filled by JS -->
+          </div>
         </div>
       </div>
 
@@ -254,6 +300,209 @@
           <!-- Filled by JS -->
         </div>
       </section>
+
+      <!-- VIEW 3: Dedicated Flashcard Self-Testing Mode -->
+      <section class="flashcard-section" id="flashcardView" style="display:none;">
+        <div class="flashcard-topbar">
+          <div class="flashcard-header-info">
+            <h2 class="flashcard-view-title">Thẻ Ghi Nhớ & Tự Kiểm Tra Kiến Thức</h2>
+            <p class="flashcard-view-subtitle">Lật mặt sau để xem đáp án chuẩn và tự đánh giá khả năng ghi nhớ cho từng câu hỏi.</p>
+          </div>
+
+          <!-- Controls Toolbar -->
+          <div class="flashcard-controls-bar">
+            <div class="flashcard-filter-group">
+              <label for="flashcardSourceSelect" class="fc-filter-label">Nguồn thẻ:</label>
+              <select id="flashcardSourceSelect" class="fc-select">
+                <option value="all">Tất cả 38 câu hỏi</option>
+                <option value="unlearned">Chỉ câu chưa học</option>
+                <option value="learned">Chỉ câu đã học</option>
+                <option value="starred">Chỉ câu đã lưu ⭐</option>
+                <optgroup label="Theo chuyên đề kiến thức">
+                  <option value="chap-1">Chương 1: Tổng quan & Khái niệm (1 - 5)</option>
+                  <option value="chap-2">Chương 2: Tiến trình Infosys, Baseline (6 - 10)</option>
+                  <option value="chap-3">Chương 3: Thay đổi yêu cầu & Ước lượng (11 - 14)</option>
+                  <option value="chap-4">Chương 4: Quản lý chất lượng & Lỗi (15 - 17)</option>
+                  <option value="chap-5">Chương 5: Quản lý rủi ro dự án (18 - 20)</option>
+                  <option value="chap-6">Chương 6: Hệ thống số đo & SPC (21 - 26)</option>
+                  <option value="chap-7">Chương 7: Quản lý cấu hình & Xem xét lại (27 - 32)</option>
+                  <option value="chap-8">Chương 8: Kiểm soát cột mốc & Kết thúc (33 - 38)</option>
+                </optgroup>
+              </select>
+            </div>
+
+            <div class="flashcard-quick-actions">
+              <button class="fc-tool-btn" id="fcShuffleBtn" title="Xáo trộn ngẫu nhiên thứ tự thẻ">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="16 3 21 3 21 8"></polyline>
+                  <line x1="4" y1="20" x2="21" y2="3"></line>
+                  <polyline points="21 16 21 21 16 21"></polyline>
+                  <line x1="15" y1="15" x2="21" y2="21"></line>
+                  <line x1="4" y1="4" x2="9" y2="9"></line>
+                </svg>
+                <span>Xáo trộn</span>
+              </button>
+              <button class="fc-tool-btn" id="fcResetOrderBtn" title="Đặt lại thứ tự ban đầu (1 đến 38)">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="1 4 1 10 7 10"></polyline>
+                  <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                </svg>
+                <span>Thứ tự gốc</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress Track -->
+        <div class="fc-progress-wrapper">
+          <div class="fc-progress-labels">
+            <span class="fc-step-indicator" id="fcStepIndicator">Thẻ 1 / 38</span>
+            <span class="fc-status-indicator" id="fcStatusIndicator">Đã thuộc: <strong>0</strong>/38 câu</span>
+          </div>
+          <div class="fc-progress-track">
+            <div class="fc-progress-bar" id="fcProgressBar" style="width: 2.6%;"></div>
+          </div>
+        </div>
+
+        <!-- 3D Flashcard Container -->
+        <div class="flashcard-wrapper" id="flashcardWrapper">
+          <div class="flashcard-inner" id="flashcardInner" tabindex="0" role="region" aria-label="Thẻ ghi nhớ ôn thi">
+            
+            <!-- FRONT FACE -->
+            <div class="flashcard-face flashcard-face-front" id="flashcardFront">
+              <div class="fc-face-header">
+                <div class="fc-meta-left">
+                  <span class="q-badge" id="fcFrontNum">CÂU 1</span>
+                  <span class="category-tag" id="fcFrontCategory">Tổng quan & Khái niệm</span>
+                  <span class="page-tag" id="fcFrontPage">Trang 6</span>
+                </div>
+                <div class="fc-meta-right">
+                  <span class="fc-learned-badge" id="fcFrontLearnedBadge">Chưa học</span>
+                  <button class="icon-btn" id="fcFrontStarBtn" title="Đánh dấu lưu câu này">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="fc-face-body fc-front-body">
+                <div class="fc-prompt-tag">CÂU HỎI TỰ KIỂM TRA</div>
+                <h3 class="fc-question-text" id="fcFrontTitle">Khái niệm dự án và đặc trưng...</h3>
+                <div class="fc-tags-list" id="fcFrontTags"></div>
+              </div>
+
+              <div class="fc-face-footer">
+                <div class="fc-flip-hint">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                  </svg>
+                  <span>Nhấn vào thẻ hoặc bấm phím <strong>[Cách / Space]</strong> để xem đáp án</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- BACK FACE -->
+            <div class="flashcard-face flashcard-face-back" id="flashcardBack">
+              <div class="fc-face-header">
+                <div class="fc-meta-left">
+                  <span class="q-badge" id="fcBackNum">CÂU 1</span>
+                  <span class="category-tag" id="fcBackCategory">Tổng quan & Khái niệm</span>
+                  <span class="page-tag" id="fcBackPage">Trang 6</span>
+                </div>
+                <div class="fc-meta-right">
+                  <button class="fc-flip-back-pill" id="fcFlipBackBtn" title="Lật lại mặt câu hỏi">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="1 4 1 10 7 10"></polyline>
+                      <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                    </svg>
+                    <span>Lật lại câu hỏi</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="fc-face-body fc-back-body">
+                <h4 class="fc-back-title" id="fcBackTitle">Tiêu đề câu hỏi...</h4>
+                <div class="fc-answer-content" id="fcBackAnswer">
+                  <!-- Injected contentHtml -->
+                </div>
+                <div class="fc-back-photo-action" id="fcBackPhotoAction">
+                  <!-- Photo link if exists -->
+                </div>
+              </div>
+
+              <div class="fc-face-footer">
+                <div class="fc-self-rate-prompt">Đánh giá mức độ thuộc câu này của bạn:</div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Flashcard Completion / Empty Deck Card -->
+          <div class="fc-completion-box" id="fcCompletionCard" style="display:none;">
+            <div class="fc-completion-icon" id="fcCompletionIcon">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="9 12 11.5 14.5 16 9.5"></polyline>
+              </svg>
+            </div>
+            <h3 class="fc-completion-title" id="fcCompletionTitle">Hoàn thành bộ thẻ ôn tập!</h3>
+            <p class="fc-completion-desc" id="fcCompletionDesc">Bạn đã duyệt qua toàn bộ các câu hỏi trong danh mục này.</p>
+            <div class="fc-completion-actions">
+              <button class="fc-main-flip-btn" id="fcRestartDeckBtn">Ôn lại từ đầu</button>
+              <button class="fc-rate-btn fc-rate-unlearned" id="fcReviewUnlearnedBtn">Chỉ ôn câu chưa thuộc</button>
+              <button class="fc-nav-btn" id="fcCompleteBackReadingBtn">Về đọc chi tiết</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls below the card -->
+        <div class="flashcard-actions-bar">
+          <button class="fc-nav-btn" id="fcPrevBtn" title="Câu trước (Phím ←)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <span>Câu trước</span>
+          </button>
+
+          <div class="fc-rating-group">
+            <button class="fc-rate-btn fc-rate-unlearned" id="fcBtnUnlearned" title="Đánh dấu chưa thuộc / cần ôn lại (Phím 1)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <span>Chưa thuộc</span>
+            </button>
+
+            <button class="fc-main-flip-btn" id="fcMainFlipBtn" title="Lật mặt thẻ (Phím Space)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
+              <span id="fcMainFlipText">Xem đáp án</span>
+            </button>
+
+            <button class="fc-rate-btn fc-rate-learned" id="fcBtnLearned" title="Đánh dấu đã thuộc bài (Phím 2)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span>Đã thuộc ✓</span>
+            </button>
+          </div>
+
+          <button class="fc-nav-btn" id="fcNextBtn" title="Câu tiếp theo (Phím →)">
+            <span>Câu sau</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+        </div>
+
+        <!-- Keyboard hints (visible on desktop) -->
+        <div class="fc-keyboard-hints">
+          <span class="hint-item"><kbd>Space</kbd> Lật thẻ</span>
+          <span class="hint-item"><kbd>&larr;</kbd> <kbd>&rarr;</kbd> Chuyển câu</span>
+          <span class="hint-item"><kbd>1</kbd> Chưa thuộc</span>
+          <span class="hint-item"><kbd>2</kbd> Đã thuộc</span>
+          <span class="hint-item"><kbd>R</kbd> Xáo trộn</span>
+        </div>
+
+        <!-- Jump to reading view for this question -->
+        <div class="fc-footer-extra">
+          <button class="fc-jump-to-reading-btn" id="fcJumpToReadingBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>Mở câu hỏi này trong Chế độ đọc chi tiết</span>
+          </button>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -270,6 +519,14 @@
       </svg>
       <span>Mục lục</span>
     </button>
+
+    <button class="mobile-nav-item" id="mobileNavFlashcardBtn">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="5" width="20" height="14" rx="2"></rect>
+        <line x1="2" y1="10" x2="22" y2="10"></line>
+      </svg>
+      <span>Flashcard</span>
+    </button>
     
     <button class="mobile-nav-item" id="mobileNavSearchBtn">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -279,25 +536,19 @@
       <span>Tìm kiếm</span>
     </button>
 
+    <button class="mobile-nav-item" id="mobileNavLearnedBtn">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polyline points="9 12 11.5 14.5 16 9.5"></polyline>
+      </svg>
+      <span id="mobileLearnedText">Đã học</span>
+    </button>
+
     <button class="mobile-nav-item" id="mobileNavStarredBtn">
       <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
       </svg>
       <span id="mobileStarredText">Đã lưu</span>
-    </button>
-
-    <button class="mobile-nav-item" id="mobileNavThemeBtn">
-      <span id="mobileThemeIconContainer">
-        <!-- Injected via JS -->
-      </span>
-      <span>Sáng/Tối</span>
-    </button>
-
-    <button class="mobile-nav-item" id="mobileNavTopBtn">
-      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-        <polyline points="18 15 12 9 6 15"></polyline>
-      </svg>
-      <span>Lên đầu</span>
     </button>
   </nav>
 

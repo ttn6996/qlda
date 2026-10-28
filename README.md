@@ -12,14 +12,27 @@ Trang web tra cứu và ôn tập nhanh ngân hàng 38 câu hỏi môn **Quản 
    - Các bảng đối chiếu (Câu 33, Câu 34) và sơ đồ quy trình (Câu 30) được định dạng bảng HTML đẹp mắt đồng thời có **ảnh cắt trực tiếp từ tài liệu gốc**.
    - Nút **"🖼️ Xem ảnh trang sách gốc"** trên mỗi câu cho phép đối chiếu trực tiếp bản chụp gốc qua Lightbox phóng to/thu nhỏ.
 
-2. **Tra cứu siêu tốc**:
+2. **Chế độ Thẻ ghi nhớ (Flashcard) tự kiểm tra**:
+   - Giao diện thẻ 3D lật mặt trước (câu hỏi) và mặt sau (đáp án chuẩn hóa).
+   - Tự đánh giá mức độ thuộc: **"Chưa thuộc"** vs **"Đã thuộc ✓"**.
+   - Hỗ trợ xáo trộn ngẫu nhiên thứ tự thẻ (Shuffle) để kiểm tra phản xạ kiến thức.
+   - Lọc nguồn thẻ linh hoạt: Tất cả 38 câu, Chỉ câu chưa học, Chỉ câu đã học, Câu đã lưu ⭐ hoặc theo từng chương.
+   - Phím tắt tiện lợi cho máy tính: `Space` (Lật thẻ), `←` / `→` (Chuyển câu), `1` (Chưa thuộc), `2` (Đã thuộc), `R` (Xáo trộn).
+
+3. **Theo dõi tiến độ & Đánh dấu câu đã học**:
+   - Nút đánh dấu **"Đã học"** ngay trên từng câu hỏi và trong chế độ thẻ.
+   - Thanh tiến độ học tập trực quan: hiển thị tỷ lệ đã thuộc (ví dụ `12/38 câu (32%)`).
+   - Bộ lọc trạng thái: **Tất cả**, **Chưa học**, **Đã học**, **Đã lưu ⭐** giúp tập trung học các câu còn lại.
+   - Lưới nhảy nhanh (1 → 38) và thanh bên hiển thị biểu tượng câu đã học trực quan.
+
+4. **Tra cứu siêu tốc**:
    - **Tìm kiếm thông minh**: Hỗ trợ tiếng Việt không dấu (gõ `spc`, `rui ro`, `thac nuoc`, `14`, `cau 22` đều tìm ra ngay tức thì).
+   - **Mục lục chuyên biệt**: Chế độ xem mục lục 8 chương riêng biệt có thể thu gọn/mở rộng.
    - **Lưới nhảy nhanh (1 → 38)**: Bấm số câu ở thanh bên để cuộn ngay đến vị trí câu hỏi.
-   - **Lọc theo chủ đề**: Phân loại theo 8 chuyên đề kiến thức.
    - **Đánh dấu câu hỏi ⭐**: Lưu các câu quan trọng vào bộ nhớ trình duyệt để ôn tập trước khi thi.
 
-3. **Giao diện thân thiện, ưa nhìn**:
-   - Phong cách giao diện tài liệu học thuật (sạch sẽ, thanh lịch, không màu mè AI).
+5. **Giao diện thân thiện, ưa nhìn**:
+   - Phong cách giao diện tài liệu học thuật (sạch sẽ, thanh lịch, 100% vector SVG).
    - Hỗ trợ chế độ **Sáng / Tối** (Dark / Light mode).
    - Tăng giảm kích cỡ chữ (`A-` / `A+`) linh hoạt cho mắt.
    - Nút sao chép nội dung câu hỏi kèm đáp án chỉ với 1 click.

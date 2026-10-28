@@ -10,12 +10,21 @@
   let currentCategory = 'all';
   let searchQuery = '';
   let starredQuestions = new Set(JSON.parse(localStorage.getItem('starred_questions') || '[]'));
+  let learnedQuestions = new Set(JSON.parse(localStorage.getItem('learned_questions') || '[]'));
   let showOnlyStarred = false;
+  let statusFilter = 'all'; // 'all' | 'unlearned' | 'learned' | 'starred'
   let currentZoom = 1;
   let activeLightboxPages = [];
   let currentLightboxIndex = 0;
-  let currentViewMode = 'reading'; // 'reading' | 'toc'
+  let currentViewMode = 'reading'; // 'reading' | 'toc' | 'flashcard'
   let allChaptersCollapsed = false;
+
+  // Flashcard Deck State
+  let fcDeck = [];
+  let fcIndex = 0;
+  let fcIsFlipped = false;
+  let fcSource = 'all';
+  let fcIsShuffled = false;
 
   // DOM Elements
   const questionsContainer = document.getElementById('questionsContainer');
@@ -28,9 +37,23 @@
   const closeTocModalBtn = document.getElementById('closeTocModalBtn');
   const viewReadingBtn = document.getElementById('viewReadingBtn');
   const viewTocBtn = document.getElementById('viewTocBtn');
+  const viewFlashcardBtn = document.getElementById('viewFlashcardBtn');
+  const flashcardView = document.getElementById('flashcardView');
+  const filterControlsContainer = document.getElementById('filterControlsContainer');
   const categoryFilterWrapper = document.getElementById('categoryFilterWrapper');
+  const statusFilterPills = document.getElementById('statusFilterPills');
+  const countAllPill = document.getElementById('countAllPill');
+  const countUnlearnedPill = document.getElementById('countUnlearnedPill');
+  const countLearnedPill = document.getElementById('countLearnedPill');
+  const countStarredPill = document.getElementById('countStarredPill');
   const tocExpandAllBtn = document.getElementById('tocExpandAllBtn');
   const tocExpandAllText = document.getElementById('tocExpandAllText');
+
+  const toggleLearnedFilterBtn = document.getElementById('toggleLearnedFilterBtn');
+  const headerLearnedBtnText = document.getElementById('headerLearnedBtnText');
+  const learnedCountText = document.getElementById('learnedCountText');
+  const learnedPercentText = document.getElementById('learnedPercentText');
+  const learnedProgressFill = document.getElementById('learnedProgressFill');
 
   const sidebarNav = document.getElementById('sidebarNav');
   const quickJumpGrid = document.getElementById('quickJumpGrid');
@@ -54,13 +77,57 @@
   const toastEl = document.getElementById('toastNotice');
   const toastText = document.getElementById('toastText');
 
+  // Flashcard Elements
+  const flashcardSourceSelect = document.getElementById('flashcardSourceSelect');
+  const fcShuffleBtn = document.getElementById('fcShuffleBtn');
+  const fcResetOrderBtn = document.getElementById('fcResetOrderBtn');
+  const fcStepIndicator = document.getElementById('fcStepIndicator');
+  const fcStatusIndicator = document.getElementById('fcStatusIndicator');
+  const fcProgressBar = document.getElementById('fcProgressBar');
+  const flashcardWrapper = document.getElementById('flashcardWrapper');
+  const flashcardInner = document.getElementById('flashcardInner');
+  const flashcardFront = document.getElementById('flashcardFront');
+  const flashcardBack = document.getElementById('flashcardBack');
+  const fcFrontNum = document.getElementById('fcFrontNum');
+  const fcFrontCategory = document.getElementById('fcFrontCategory');
+  const fcFrontPage = document.getElementById('fcFrontPage');
+  const fcFrontLearnedBadge = document.getElementById('fcFrontLearnedBadge');
+  const fcFrontStarBtn = document.getElementById('fcFrontStarBtn');
+  const fcFrontTitle = document.getElementById('fcFrontTitle');
+  const fcFrontTags = document.getElementById('fcFrontTags');
+  const fcBackNum = document.getElementById('fcBackNum');
+  const fcBackCategory = document.getElementById('fcBackCategory');
+  const fcBackPage = document.getElementById('fcBackPage');
+  const fcFlipBackBtn = document.getElementById('fcFlipBackBtn');
+  const fcBackTitle = document.getElementById('fcBackTitle');
+  const fcBackAnswer = document.getElementById('fcBackAnswer');
+  const fcBackPhotoAction = document.getElementById('fcBackPhotoAction');
+  const fcPrevBtn = document.getElementById('fcPrevBtn');
+  const fcNextBtn = document.getElementById('fcNextBtn');
+  const fcMainFlipBtn = document.getElementById('fcMainFlipBtn');
+  const fcMainFlipText = document.getElementById('fcMainFlipText');
+  const fcBtnUnlearned = document.getElementById('fcBtnUnlearned');
+  const fcBtnLearned = document.getElementById('fcBtnLearned');
+  const fcJumpToReadingBtn = document.getElementById('fcJumpToReadingBtn');
+
+  // Flashcard Completion Box Elements
+  const fcCompletionCard = document.getElementById('fcCompletionCard');
+  const fcCompletionTitle = document.getElementById('fcCompletionTitle');
+  const fcCompletionDesc = document.getElementById('fcCompletionDesc');
+  const fcRestartDeckBtn = document.getElementById('fcRestartDeckBtn');
+  const fcReviewUnlearnedBtn = document.getElementById('fcReviewUnlearnedBtn');
+  const fcCompleteBackReadingBtn = document.getElementById('fcCompleteBackReadingBtn');
+
   // Mobile elements
   const mobileSearchToggleBtn = document.getElementById('mobileSearchToggleBtn');
   const mobileSearchBar = document.getElementById('mobileSearchBar');
   const mobileSearchInput = document.getElementById('mobileSearchInput');
   const mobileSearchClearBtn = document.getElementById('mobileSearchClearBtn');
   const mobileNavTocBtn = document.getElementById('mobileNavTocBtn');
+  const mobileNavFlashcardBtn = document.getElementById('mobileNavFlashcardBtn');
   const mobileNavSearchBtn = document.getElementById('mobileNavSearchBtn');
+  const mobileNavLearnedBtn = document.getElementById('mobileNavLearnedBtn');
+  const mobileLearnedText = document.getElementById('mobileLearnedText');
   const mobileNavStarredBtn = document.getElementById('mobileNavStarredBtn');
   const mobileStarredText = document.getElementById('mobileStarredText');
   const mobileNavThemeBtn = document.getElementById('mobileNavThemeBtn');
@@ -85,6 +152,10 @@
     book: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
     starOutline: `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
     starFilled: `<svg width="17" height="17" viewBox="0 0 24 24" fill="#d97706" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+    checkCircleOutline: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11.5 14.5 16 9.5"/></svg>`,
+    checkCircleFilled: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" fill="#16a34a" fill-opacity="0.15"/><circle cx="12" cy="12" r="10"/><polyline points="8.5 12 11 14.5 15.5 9.5"/></svg>`,
+    checkCircleFilledSmall: `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    flashcard: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>`,
     copy: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
     image: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>`,
     chevronDown: `<svg class="toc-toggle-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>`,
@@ -226,6 +297,18 @@
         return false;
       }
 
+      if (statusFilter === 'unlearned' && learnedQuestions.has(q.id)) {
+        return false;
+      }
+
+      if (statusFilter === 'learned' && !learnedQuestions.has(q.id)) {
+        return false;
+      }
+
+      if (statusFilter === 'starred' && !starredQuestions.has(q.id)) {
+        return false;
+      }
+
       if (showOnlyStarred && !starredQuestions.has(q.id)) {
         return false;
       }
@@ -262,6 +345,10 @@
         a.classList.add('has-star');
       }
 
+      if (learnedQuestions.has(q.id)) {
+        a.classList.add('is-learned');
+      }
+
       a.addEventListener('click', (e) => {
         e.preventDefault();
         switchToReadingAndScrollTo(q.id);
@@ -288,10 +375,13 @@
       }
 
       const isStarred = starredQuestions.has(q.id);
+      const isLearned = learnedQuestions.has(q.id);
+
       a.innerHTML = `
         <span class="sidebar-num">#${q.id}</span>
         <span class="sidebar-text">${q.title}</span>
-        ${isStarred ? `<span class="sidebar-star-icon">${ICONS.starFilled}</span>` : ''}
+        ${isLearned ? `<span class="sidebar-learned-icon" title="Đã học">${ICONS.checkCircleFilledSmall}</span>` : ''}
+        ${isStarred ? `<span class="sidebar-star-icon" title="Đã lưu">${ICONS.starFilled}</span>` : ''}
       `;
 
       a.addEventListener('click', (e) => {
@@ -351,10 +441,10 @@
 
     filtered.forEach(q => {
       const card = document.createElement('article');
-      card.className = 'question-card';
-      card.id = `cau-${q.id}`;
-
       const isStarred = starredQuestions.has(q.id);
+      const isLearned = learnedQuestions.has(q.id);
+      card.className = `question-card ${isLearned ? 'is-learned' : ''}`;
+      card.id = `cau-${q.id}`;
 
       // Card Header
       const header = `
@@ -365,6 +455,10 @@
             <span class="page-tag">${ICONS.book} ${q.bookPage}</span>
           </div>
           <div class="card-actions">
+            <button class="learned-toggle-btn ${isLearned ? 'is-learned' : ''}" data-toggle-learned="${q.id}" title="${isLearned ? 'Bỏ đánh dấu đã học' : 'Đánh dấu đã học câu này'}">
+              ${isLearned ? ICONS.checkCircleFilled : ICONS.checkCircleOutline}
+              <span>${isLearned ? 'Đã học' : 'Đánh dấu đã học'}</span>
+            </button>
             <button class="icon-btn ${isStarred ? 'starred' : ''}" data-star="${q.id}" title="${isStarred ? 'Bỏ đánh dấu' : 'Đánh dấu câu này'}">
               ${isStarred ? ICONS.starFilled : ICONS.starOutline}
             </button>
@@ -397,10 +491,16 @@
       const footer = `
         <div class="card-footer">
           ${footerOriginalBtn}
-          <button class="copy-content-btn" data-copy="${q.id}">
-            ${ICONS.copy}
-            Chép câu ${q.id}
-          </button>
+          <div class="card-footer-right">
+            <button class="flashcard-jump-btn" data-fc-jump="${q.id}" title="Luyện thẻ ghi nhớ cho câu này">
+              ${ICONS.flashcard}
+              <span>Học Flashcard</span>
+            </button>
+            <button class="copy-content-btn" data-copy="${q.id}">
+              ${ICONS.copy}
+              Chép câu ${q.id}
+            </button>
+          </div>
         </div>
       `;
 
@@ -413,19 +513,29 @@
 
   // Attach card action listeners
   function attachCardListeners() {
+    // Learned toggle
+    document.querySelectorAll('[data-toggle-learned]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(btn.getAttribute('data-toggle-learned'), 10);
+        toggleLearnedQuestion(id);
+      });
+    });
+
+    // Jump to flashcard for this question
+    document.querySelectorAll('[data-fc-jump]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = parseInt(btn.getAttribute('data-fc-jump'), 10);
+        jumpToFlashcard(id);
+      });
+    });
+
     // Star toggle
     document.querySelectorAll('[data-star]').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = parseInt(btn.getAttribute('data-star'), 10);
-        if (starredQuestions.has(id)) {
-          starredQuestions.delete(id);
-          showToast(`Đã bỏ đánh dấu Câu ${id}`);
-        } else {
-          starredQuestions.add(id);
-          showToast(`Đã lưu Câu ${id} vào mục đánh dấu`);
-        }
-        localStorage.setItem('starred_questions', JSON.stringify([...starredQuestions]));
-        renderAll();
+        toggleStarQuestion(id);
       });
     });
 
@@ -444,6 +554,38 @@
         openQuestionLightbox(id);
       });
     });
+  }
+
+  // Toggle Learned status for a question
+  function toggleLearnedQuestion(id) {
+    if (learnedQuestions.has(id)) {
+      learnedQuestions.delete(id);
+      showToast(`Đã bỏ đánh dấu Đã học: Câu ${id}`);
+    } else {
+      learnedQuestions.add(id);
+      showToast(`Đã đánh dấu đã học Câu ${id}! ✓`);
+    }
+    localStorage.setItem('learned_questions', JSON.stringify([...learnedQuestions]));
+    renderAll();
+    if (currentViewMode === 'flashcard') {
+      renderCurrentFlashcard();
+    }
+  }
+
+  // Toggle Star status for a question
+  function toggleStarQuestion(id) {
+    if (starredQuestions.has(id)) {
+      starredQuestions.delete(id);
+      showToast(`Đã bỏ đánh dấu lưu Câu ${id}`);
+    } else {
+      starredQuestions.add(id);
+      showToast(`Đã lưu Câu ${id} vào mục đánh dấu ⭐`);
+    }
+    localStorage.setItem('starred_questions', JSON.stringify([...starredQuestions]));
+    renderAll();
+    if (currentViewMode === 'flashcard') {
+      renderCurrentFlashcard();
+    }
   }
 
   // Copy full question and text
@@ -522,6 +664,7 @@
         }
 
         const isStarred = starredQuestions.has(q.id);
+        const isLearned = learnedQuestions.has(q.id);
 
         row.innerHTML = `
           <div class="toc-q-left">
@@ -531,6 +674,7 @@
           <div class="toc-q-right">
             ${badgeHtml}
             <span class="toc-q-page">${q.bookPage}</span>
+            ${isLearned ? `<span class="toc-learned-badge" title="Đã học">${ICONS.checkCircleFilledSmall}</span>` : ''}
             ${isStarred ? `<span style="color:var(--accent-gold); display:inline-flex;">${ICONS.starFilled}</span>` : ''}
             ${ICONS.chevronRight}
           </div>
@@ -591,6 +735,9 @@
         if (q.id === 30) badgeHtml = `<span class="badge-figure">Có sơ đồ</span>`;
         if (q.id === 33 || q.id === 34) badgeHtml = `<span class="badge-table">Có bảng</span>`;
 
+        const isStarred = starredQuestions.has(q.id);
+        const isLearned = learnedQuestions.has(q.id);
+
         row.innerHTML = `
           <div class="toc-q-left">
             <span class="toc-q-num">#${q.id}</span>
@@ -599,6 +746,8 @@
           <div class="toc-q-right">
             ${badgeHtml}
             <span class="toc-q-page">${q.bookPage}</span>
+            ${isLearned ? `<span class="toc-learned-badge" title="Đã học">${ICONS.checkCircleFilledSmall}</span>` : ''}
+            ${isStarred ? `<span style="color:var(--accent-gold); display:inline-flex;">${ICONS.starFilled}</span>` : ''}
           </div>
         `;
 
@@ -624,21 +773,37 @@
     if (mode === 'reading') {
       viewReadingBtn.classList.add('active');
       viewTocBtn.classList.remove('active');
-      categoryFilterWrapper.style.display = 'block';
+      if (viewFlashcardBtn) viewFlashcardBtn.classList.remove('active');
+      if (filterControlsContainer) filterControlsContainer.style.display = 'flex';
       questionsContainer.style.display = 'flex';
       dedicatedTocView.style.display = 'none';
-    } else {
+      if (flashcardView) flashcardView.style.display = 'none';
+    } else if (mode === 'toc') {
       viewTocBtn.classList.add('active');
       viewReadingBtn.classList.remove('active');
-      categoryFilterWrapper.style.display = 'none';
+      if (viewFlashcardBtn) viewFlashcardBtn.classList.remove('active');
+      if (filterControlsContainer) filterControlsContainer.style.display = 'none';
       questionsContainer.style.display = 'none';
       dedicatedTocView.style.display = 'flex';
-      renderDedicatedToc();
+      if (flashcardView) flashcardView.style.display = 'none';
+      renderDedicatedToc(searchQuery);
+    } else if (mode === 'flashcard') {
+      if (viewFlashcardBtn) viewFlashcardBtn.classList.add('active');
+      viewReadingBtn.classList.remove('active');
+      viewTocBtn.classList.remove('active');
+      if (filterControlsContainer) filterControlsContainer.style.display = 'none';
+      questionsContainer.style.display = 'none';
+      dedicatedTocView.style.display = 'none';
+      if (flashcardView) flashcardView.style.display = 'flex';
+      initFlashcards();
     }
   }
 
   viewReadingBtn.addEventListener('click', () => setViewMode('reading'));
   viewTocBtn.addEventListener('click', () => setViewMode('toc'));
+  if (viewFlashcardBtn) {
+    viewFlashcardBtn.addEventListener('click', () => setViewMode('flashcard'));
+  }
 
   // Expand / Collapse All Chapters in TOC View
   tocExpandAllBtn.addEventListener('click', () => {
@@ -805,10 +970,22 @@
     });
   }
 
-  // Star filter toggle
-  function toggleStarredFilter() {
-    showOnlyStarred = !showOnlyStarred;
-    toggleStarredFilterBtn.classList.toggle('active', showOnlyStarred);
+  // Status filter pills
+  if (statusFilterPills) {
+    statusFilterPills.querySelectorAll('.status-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const status = pill.getAttribute('data-status');
+        setStatusFilter(status);
+      });
+    });
+  }
+
+  function setStatusFilter(status) {
+    statusFilter = status;
+    showOnlyStarred = (status === 'starred');
+    if (toggleStarredFilterBtn) {
+      toggleStarredFilterBtn.classList.toggle('active', showOnlyStarred);
+    }
     if (mobileNavStarredBtn) {
       mobileNavStarredBtn.classList.toggle('starred-active', showOnlyStarred);
       mobileStarredText.textContent = showOnlyStarred ? 'Đang lọc' : 'Đã lưu';
@@ -816,7 +993,375 @@
     renderAll();
   }
 
+  // Star filter toggle
+  function toggleStarredFilter() {
+    if (statusFilter === 'starred') {
+      setStatusFilter('all');
+    } else {
+      setStatusFilter('starred');
+    }
+  }
+
   toggleStarredFilterBtn.addEventListener('click', toggleStarredFilter);
+
+  // Learned filter toggle
+  function toggleLearnedFilter() {
+    if (statusFilter === 'learned') {
+      setStatusFilter('all');
+    } else {
+      setStatusFilter('learned');
+    }
+  }
+
+  if (toggleLearnedFilterBtn) {
+    toggleLearnedFilterBtn.addEventListener('click', toggleLearnedFilter);
+  }
+
+  // Study progress updater
+  function updateStudyProgress() {
+    const total = QUESTIONS_DATA.length;
+    const learnedCount = learnedQuestions.size;
+    const pct = Math.round((learnedCount / total) * 100);
+
+    if (learnedCountText) learnedCountText.textContent = learnedCount;
+    if (learnedPercentText) learnedPercentText.textContent = `${pct}%`;
+    if (learnedProgressFill) learnedProgressFill.style.width = `${pct}%`;
+
+    if (countAllPill) countAllPill.textContent = total;
+    if (countUnlearnedPill) countUnlearnedPill.textContent = total - learnedCount;
+    if (countLearnedPill) countLearnedPill.textContent = learnedCount;
+    if (countStarredPill) countStarredPill.textContent = starredQuestions.size;
+
+    if (statusFilterPills) {
+      statusFilterPills.querySelectorAll('.status-pill').forEach(pill => {
+        pill.classList.toggle('active', pill.getAttribute('data-status') === statusFilter);
+      });
+    }
+
+    if (headerLearnedBtnText) {
+      headerLearnedBtnText.textContent = statusFilter === 'learned' ? 'Đang lọc Đã học' : `Đã học (${learnedCount})`;
+    }
+    if (toggleLearnedFilterBtn) {
+      toggleLearnedFilterBtn.classList.toggle('active', statusFilter === 'learned');
+    }
+
+    if (mobileLearnedText) {
+      mobileLearnedText.textContent = statusFilter === 'learned' ? 'Lọc đã học' : `Đã học (${learnedCount})`;
+    }
+    if (mobileNavLearnedBtn) {
+      mobileNavLearnedBtn.classList.toggle('active', statusFilter === 'learned');
+    }
+  }
+
+  // =========================================================================
+  // FLASHCARD SELF-TESTING ENGINE
+  // =========================================================================
+
+  function buildFlashcardDeck(source = fcSource) {
+    fcSource = source;
+    if (flashcardSourceSelect) flashcardSourceSelect.value = source;
+
+    let cards = [];
+    if (source === 'all') {
+      cards = [...QUESTIONS_DATA];
+    } else if (source === 'unlearned') {
+      cards = QUESTIONS_DATA.filter(q => !learnedQuestions.has(q.id));
+    } else if (source === 'learned') {
+      cards = QUESTIONS_DATA.filter(q => learnedQuestions.has(q.id));
+    } else if (source === 'starred') {
+      cards = QUESTIONS_DATA.filter(q => starredQuestions.has(q.id));
+    } else if (source.startsWith('chap-')) {
+      const chapId = parseInt(source.replace('chap-', ''), 10);
+      const chap = CHAPTERS_DATA.find(c => c.id === chapId);
+      if (chap) {
+        cards = QUESTIONS_DATA.filter(q => chap.qIds.includes(q.id));
+      }
+    }
+
+    if (fcIsShuffled) {
+      cards = shuffleArray(cards);
+    }
+
+    fcDeck = cards;
+    if (fcIndex >= fcDeck.length) {
+      fcIndex = 0;
+    }
+  }
+
+  function shuffleArray(arr) {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+  }
+
+  function initFlashcards(source = 'all', targetId = null) {
+    fcIsFlipped = false;
+    buildFlashcardDeck(source);
+
+    if (targetId) {
+      const idx = fcDeck.findIndex(q => q.id === targetId);
+      if (idx !== -1) fcIndex = idx;
+      else fcIndex = 0;
+    } else {
+      fcIndex = 0;
+    }
+
+    renderCurrentFlashcard();
+  }
+
+  function renderCurrentFlashcard() {
+    if (!flashcardWrapper) return;
+
+    fcIsFlipped = false;
+    if (flashcardInner) flashcardInner.classList.remove('is-flipped');
+    if (fcMainFlipText) fcMainFlipText.textContent = 'Xem đáp án';
+
+    if (fcDeck.length === 0) {
+      if (flashcardInner) flashcardInner.style.display = 'none';
+      if (fcCompletionCard) {
+        fcCompletionCard.style.display = 'flex';
+        fcCompletionTitle.textContent = 'Không có thẻ nào trong danh mục này';
+        fcCompletionDesc.textContent =
+          fcSource === 'unlearned' ? 'Tuyệt vời! Bạn đã thuộc tất cả các câu hỏi.' :
+          fcSource === 'learned' ? 'Bạn chưa đánh dấu câu hỏi nào là đã học.' :
+          fcSource === 'starred' ? 'Bạn chưa lưu câu hỏi nào vào mục yêu thích ⭐.' :
+          'Không tìm thấy câu hỏi phù hợp.';
+      }
+      if (fcStepIndicator) fcStepIndicator.textContent = '0 / 0';
+      if (fcStatusIndicator) fcStatusIndicator.innerHTML = `Đã thuộc: <strong>${learnedQuestions.size}</strong>/38 câu`;
+      if (fcProgressBar) fcProgressBar.style.width = '0%';
+      return;
+    }
+
+    if (flashcardInner) flashcardInner.style.display = 'block';
+    if (fcCompletionCard) fcCompletionCard.style.display = 'none';
+
+    const q = fcDeck[fcIndex];
+    if (!q) return;
+
+    const isLearned = learnedQuestions.has(q.id);
+    const isStarred = starredQuestions.has(q.id);
+
+    // Front Face
+    if (fcFrontNum) fcFrontNum.textContent = `CÂU ${q.id}`;
+    if (fcFrontCategory) fcFrontCategory.textContent = q.category;
+    if (fcFrontPage) fcFrontPage.textContent = q.bookPage;
+    if (fcFrontLearnedBadge) {
+      fcFrontLearnedBadge.textContent = isLearned ? 'Đã học ✓' : 'Chưa học';
+      fcFrontLearnedBadge.classList.toggle('is-learned', isLearned);
+    }
+    if (flashcardFront) flashcardFront.classList.toggle('is-learned', isLearned);
+    if (fcFrontStarBtn) {
+      fcFrontStarBtn.innerHTML = isStarred ? ICONS.starFilled : ICONS.starOutline;
+      fcFrontStarBtn.classList.toggle('starred', isStarred);
+    }
+    if (fcFrontTitle) fcFrontTitle.textContent = q.title;
+
+    if (fcFrontTags) {
+      fcFrontTags.innerHTML = '';
+      if (q.tags && q.tags.length > 0) {
+        q.tags.forEach(t => {
+          const span = document.createElement('span');
+          span.className = 'fc-tag-chip';
+          span.textContent = `#${t}`;
+          fcFrontTags.appendChild(span);
+        });
+      }
+    }
+
+    // Back Face
+    if (fcBackNum) fcBackNum.textContent = `CÂU ${q.id}`;
+    if (fcBackCategory) fcBackCategory.textContent = q.category;
+    if (fcBackPage) fcBackPage.textContent = q.bookPage;
+    if (fcBackTitle) fcBackTitle.textContent = `Câu ${q.id}: ${q.title}`;
+    if (fcBackAnswer) fcBackAnswer.innerHTML = q.contentHtml;
+
+    if (fcBackPhotoAction) {
+      fcBackPhotoAction.innerHTML = '';
+      if (q.photoPages && q.photoPages.length > 0) {
+        const photoBtn = document.createElement('button');
+        photoBtn.className = 'fc-view-original-btn';
+        photoBtn.innerHTML = `${ICONS.image} Xem ảnh trang sách gốc (${q.bookPage})`;
+        photoBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openQuestionLightbox(q.id);
+        });
+        fcBackPhotoAction.appendChild(photoBtn);
+      }
+    }
+
+    const backBody = document.querySelector('.fc-back-body');
+    if (backBody) backBody.scrollTop = 0;
+
+    // Progress
+    if (fcStepIndicator) fcStepIndicator.textContent = `Thẻ ${fcIndex + 1} / ${fcDeck.length}`;
+    if (fcStatusIndicator) fcStatusIndicator.innerHTML = `Đã thuộc: <strong>${learnedQuestions.size}</strong>/38 câu`;
+    if (fcProgressBar) {
+      const pct = Math.round(((fcIndex + 1) / fcDeck.length) * 100);
+      fcProgressBar.style.width = `${pct}%`;
+    }
+  }
+
+  function toggleFlashcardFlip() {
+    if (fcDeck.length === 0) return;
+    fcIsFlipped = !fcIsFlipped;
+    if (flashcardInner) flashcardInner.classList.toggle('is-flipped', fcIsFlipped);
+    if (fcMainFlipText) {
+      fcMainFlipText.textContent = fcIsFlipped ? 'Lật lại câu hỏi' : 'Xem đáp án';
+    }
+  }
+
+  function rateCurrentCard(learned) {
+    if (fcDeck.length === 0) return;
+    const q = fcDeck[fcIndex];
+    if (!q) return;
+
+    if (learned) {
+      learnedQuestions.add(q.id);
+      showToast(`Câu ${q.id}: Đã đánh dấu thuộc bài! ✓`);
+    } else {
+      learnedQuestions.delete(q.id);
+      showToast(`Câu ${q.id}: Cần ôn lại`);
+    }
+    localStorage.setItem('learned_questions', JSON.stringify([...learnedQuestions]));
+    updateStudyProgress();
+
+    if (fcIndex < fcDeck.length - 1) {
+      fcIndex++;
+      renderCurrentFlashcard();
+    } else {
+      showFlashcardCompletion();
+    }
+  }
+
+  function fcNextCard() {
+    if (fcDeck.length === 0) return;
+    if (fcIndex < fcDeck.length - 1) {
+      fcIndex++;
+      renderCurrentFlashcard();
+    } else {
+      showFlashcardCompletion();
+    }
+  }
+
+  function fcPrevCard() {
+    if (fcDeck.length === 0) return;
+    if (fcIndex > 0) {
+      fcIndex--;
+      renderCurrentFlashcard();
+    }
+  }
+
+  function shuffleFlashcards() {
+    fcIsShuffled = true;
+    fcDeck = shuffleArray(fcDeck);
+    fcIndex = 0;
+    showToast('Đã xáo trộn thứ tự các câu hỏi!');
+    renderCurrentFlashcard();
+  }
+
+  function resetFlashcardsOrder() {
+    fcIsShuffled = false;
+    fcDeck.sort((a, b) => a.id - b.id);
+    fcIndex = 0;
+    showToast('Đã đặt lại thứ tự câu 1 đến 38');
+    renderCurrentFlashcard();
+  }
+
+  function jumpToFlashcard(id) {
+    setViewMode('flashcard');
+    buildFlashcardDeck('all');
+    const targetIdx = fcDeck.findIndex(q => q.id === id);
+    if (targetIdx !== -1) {
+      fcIndex = targetIdx;
+    }
+    renderCurrentFlashcard();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function showFlashcardCompletion() {
+    if (flashcardInner) flashcardInner.style.display = 'none';
+    if (fcCompletionCard) {
+      fcCompletionCard.style.display = 'flex';
+      const totalInDeck = fcDeck.length;
+      const learnedInDeck = fcDeck.filter(q => learnedQuestions.has(q.id)).length;
+      fcCompletionTitle.textContent = 'Hoàn thành bộ thẻ ôn tập!';
+      fcCompletionDesc.innerHTML = `Bạn đã duyệt qua tất cả <strong>${totalInDeck}</strong> thẻ trong danh mục này.<br>Kết quả: <strong>${learnedInDeck}/${totalInDeck}</strong> câu đã thuộc.`;
+    }
+    if (fcStepIndicator) fcStepIndicator.textContent = `Hoàn thành ${fcDeck.length} / ${fcDeck.length}`;
+    if (fcProgressBar) fcProgressBar.style.width = '100%';
+  }
+
+  // Flashcard event listeners
+  if (flashcardInner) {
+    flashcardInner.addEventListener('click', (e) => {
+      if (!fcIsFlipped || e.target.closest('#fcFlipBackBtn')) {
+        toggleFlashcardFlip();
+      }
+    });
+  }
+
+  if (fcFlipBackBtn) {
+    fcFlipBackBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleFlashcardFlip();
+    });
+  }
+
+  if (fcFrontStarBtn) {
+    fcFrontStarBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (fcDeck[fcIndex]) {
+        toggleStarQuestion(fcDeck[fcIndex].id);
+      }
+    });
+  }
+
+  if (fcMainFlipBtn) fcMainFlipBtn.addEventListener('click', toggleFlashcardFlip);
+  if (fcPrevBtn) fcPrevBtn.addEventListener('click', fcPrevCard);
+  if (fcNextBtn) fcNextBtn.addEventListener('click', fcNextCard);
+  if (fcBtnUnlearned) fcBtnUnlearned.addEventListener('click', () => rateCurrentCard(false));
+  if (fcBtnLearned) fcBtnLearned.addEventListener('click', () => rateCurrentCard(true));
+  if (fcShuffleBtn) fcShuffleBtn.addEventListener('click', shuffleFlashcards);
+  if (fcResetOrderBtn) fcResetOrderBtn.addEventListener('click', resetFlashcardsOrder);
+
+  if (flashcardSourceSelect) {
+    flashcardSourceSelect.addEventListener('change', (e) => {
+      buildFlashcardDeck(e.target.value);
+      fcIndex = 0;
+      renderCurrentFlashcard();
+    });
+  }
+
+  if (fcRestartDeckBtn) {
+    fcRestartDeckBtn.addEventListener('click', () => {
+      fcIndex = 0;
+      renderCurrentFlashcard();
+    });
+  }
+
+  if (fcReviewUnlearnedBtn) {
+    fcReviewUnlearnedBtn.addEventListener('click', () => {
+      buildFlashcardDeck('unlearned');
+      fcIndex = 0;
+      renderCurrentFlashcard();
+    });
+  }
+
+  if (fcCompleteBackReadingBtn) {
+    fcCompleteBackReadingBtn.addEventListener('click', () => setViewMode('reading'));
+  }
+
+  if (fcJumpToReadingBtn) {
+    fcJumpToReadingBtn.addEventListener('click', () => {
+      if (fcDeck[fcIndex]) {
+        switchToReadingAndScrollTo(fcDeck[fcIndex].id);
+      }
+    });
+  }
 
   // Theme Toggle (Light / Dark)
   function initTheme() {
@@ -897,12 +1442,20 @@
     mobileNavTocBtn.addEventListener('click', openTocModal);
   }
 
+  if (mobileNavFlashcardBtn) {
+    mobileNavFlashcardBtn.addEventListener('click', () => setViewMode('flashcard'));
+  }
+
   if (mobileNavSearchBtn) {
     mobileNavSearchBtn.addEventListener('click', () => {
       mobileSearchBar.classList.add('active');
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setTimeout(() => mobileSearchInput.focus(), 250);
     });
+  }
+
+  if (mobileNavLearnedBtn) {
+    mobileNavLearnedBtn.addEventListener('click', toggleLearnedFilter);
   }
 
   if (mobileNavStarredBtn) {
@@ -954,6 +1507,40 @@
 
   // Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
+    // Flashcard shortcuts
+    if (currentViewMode === 'flashcard' && !lightboxModal.classList.contains('open') && !tocModal.classList.contains('open')) {
+      if (e.code === 'Space') {
+        e.preventDefault();
+        toggleFlashcardFlip();
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        fcNextCard();
+        return;
+      }
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        fcPrevCard();
+        return;
+      }
+      if (e.key === '1') {
+        e.preventDefault();
+        rateCurrentCard(false);
+        return;
+      }
+      if (e.key === '2') {
+        e.preventDefault();
+        rateCurrentCard(true);
+        return;
+      }
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        shuffleFlashcards();
+        return;
+      }
+    }
+
     if ((e.key === '/' || (e.ctrlKey && e.key.toLowerCase() === 'k')) && document.activeElement !== searchInput && document.activeElement !== tocModalSearchInput && document.activeElement !== mobileSearchInput) {
       e.preventDefault();
       searchInput.focus();
@@ -968,6 +1555,8 @@
         closeLightbox();
       } else if (tocModal.classList.contains('open')) {
         closeTocModal();
+      } else if (currentViewMode === 'flashcard') {
+        setViewMode('reading');
       } else if (document.activeElement === searchInput || document.activeElement === mobileSearchInput) {
         document.activeElement.blur();
       }
@@ -976,10 +1565,11 @@
 
   // Main Render Routine
   function renderAll() {
+    updateStudyProgress();
     renderCategories();
     const filtered = getFilteredQuestions();
 
-    if (searchQuery || currentCategory !== 'all' || showOnlyStarred) {
+    if (searchQuery || currentCategory !== 'all' || showOnlyStarred || statusFilter !== 'all') {
       searchResultsBar.classList.add('visible');
       resultsCountEl.textContent = `${filtered.length} / ${QUESTIONS_DATA.length}`;
     } else {
