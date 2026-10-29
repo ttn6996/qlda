@@ -145,22 +145,30 @@ body {
 }
 
 .menu-toggle-btn {
-  display: none;
-  background: transparent;
+  display: inline-flex;
+  background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
   padding: 0.45rem;
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 38px;
+  min-height: 38px;
   cursor: pointer;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   align-items: center;
   justify-content: center;
-  transition: background-color 0.15s ease;
+  transition: all 0.18s ease;
 }
 
 .menu-toggle-btn:hover {
   background: var(--bg-surface-subtle);
+  border-color: var(--border-hover);
+  color: var(--text-primary);
+}
+
+.menu-toggle-btn.collapsed {
+  background: var(--primary-light);
+  border-color: var(--primary-border);
+  color: var(--primary);
 }
 
 .app-brand {
@@ -381,8 +389,24 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.25s ease,
+              visibility 0.28s;
   z-index: 40;
+}
+
+@media (min-width: 961px) {
+  body.sidebar-collapsed .app-sidebar {
+    margin-left: calc(-1 * var(--sidebar-width) - 2px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  body.sidebar-collapsed .app-main {
+    max-width: min(1040px, calc(100% - 4rem));
+  }
 }
 
 .sidebar-header {
@@ -417,7 +441,7 @@ body {
 }
 
 .sidebar-close-btn {
-  display: none;
+  display: inline-flex;
   background: transparent;
   border: none;
   color: var(--text-muted);
@@ -426,6 +450,7 @@ body {
   border-radius: var(--radius-sm);
   align-items: center;
   justify-content: center;
+  transition: all 0.15s ease;
 }
 
 .sidebar-close-btn:hover {
@@ -643,6 +668,7 @@ body {
   max-width: calc(var(--content-max-width) + 4rem);
   margin: 0 auto;
   width: 100%;
+  transition: max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* View Switcher Bar */

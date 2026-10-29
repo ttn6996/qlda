@@ -1527,19 +1527,76 @@
     window.print();
   });
 
-  // Mobile Drawer Toggle
-  menuToggleBtn.addEventListener('click', () => {
-    appSidebar.classList.toggle('open');
-    sidebarBackdrop.classList.toggle('open');
-  });
+  // Sidebar Toggle (Supports both Desktop and Mobile, default is open on desktop)
+  function toggleSidebar() {
+    if (window.innerWidth <= 960) {
+      const isOpen = appSidebar.classList.toggle('open');
+      sidebarBackdrop.classList.toggle('open', isOpen);
+      updateSidebarToggleBtnState();
+    } else {
+      const isCollapsed = document.body.classList.toggle('sidebar-collapsed');
+      localStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false');
+      updateSidebarToggleBtnState(isCollapsed);
+    }
+  }
 
+  function closeSidebar() {
+    if (window.innerWidth <= 960) {
+      appSidebar.classList.remove('open');
+      sidebarBackdrop.classList.remove('open');
+      updateSidebarToggleBtnState();
+    } else {
+      document.body.classList.add('sidebar-collapsed');
+      localStorage.setItem('sidebar_collapsed', 'true');
+      updateSidebarToggleBtnState(true);
+    }
+  }
+
+  function updateSidebarToggleBtnState(isCollapsed) {
+    if (!menuToggleBtn) return;
+    if (window.innerWidth > 960) {
+      const collapsed = typeof isCollapsed === 'boolean' 
+        ? isCollapsed 
+        : document.body.classList.contains('sidebar-collapsed');
+      menuToggleBtn.title = collapsed ? 'Mở danh mục câu hỏi (Ctrl+B)' : 'Thu gọn danh mục câu hỏi (Ctrl+B)';
+      menuToggleBtn.setAttribute('aria-label', collapsed ? 'Mở danh mục câu hỏi' : 'Thu gọn danh mục câu hỏi');
+      menuToggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      menuToggleBtn.classList.toggle('collapsed', collapsed);
+    } else {
+      const isOpen = appSidebar.classList.contains('open');
+      menuToggleBtn.title = isOpen ? 'Đóng danh mục câu hỏi' : 'Mở danh mục câu hỏi';
+      menuToggleBtn.setAttribute('aria-label', isOpen ? 'Đóng danh mục câu hỏi' : 'Mở danh mục câu hỏi');
+      menuToggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      menuToggleBtn.classList.remove('collapsed');
+    }
+  }
+
+  function initSidebarState() {
+    // Mặc định trên desktop là mở (không có class sidebar-collapsed).
+    // Chỉ thu gọn nếu người dùng đã chủ động bấm đóng trước đó (lưu 'true' trong localStorage).
+    const saved = localStorage.getItem('sidebar_collapsed');
+    if (saved === 'true' && window.innerWidth > 960) {
+      document.body.classList.add('sidebar-collapsed');
+      updateSidebarToggleBtnState(true);
+    } else {
+      document.body.classList.remove('sidebar-collapsed');
+      updateSidebarToggleBtnState(false);
+    }
+  }
+
+  menuToggleBtn.addEventListener('click', toggleSidebar);
   sidebarBackdrop.addEventListener('click', closeSidebar);
   if (sidebarCloseBtn) sidebarCloseBtn.addEventListener('click', closeSidebar);
 
-  function closeSidebar() {
-    appSidebar.classList.remove('open');
-    sidebarBackdrop.classList.remove('open');
-  }
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 960) {
+      appSidebar.classList.remove('open');
+      sidebarBackdrop.classList.remove('open');
+      updateSidebarToggleBtnState(document.body.classList.contains('sidebar-collapsed'));
+    } else {
+      updateSidebarToggleBtnState();
+    }
+  }, { passive: true });
 
   // Mobile Bottom Navigation Bar Actions
   if (mobileNavTocBtn) {
@@ -1645,6 +1702,13 @@
       }
     }
 
+    // Toggle sidebar shortcut: Ctrl+B or Cmd+B
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+      e.preventDefault();
+      toggleSidebar();
+      return;
+    }
+
     if ((e.key === '/' || (e.ctrlKey && e.key.toLowerCase() === 'k')) && document.activeElement !== searchInput && document.activeElement !== tocModalSearchInput && document.activeElement !== mobileSearchInput) {
       e.preventDefault();
       searchInput.focus();
@@ -1667,6 +1731,8 @@
         closeLightbox();
       } else if (tocModal.classList.contains('open')) {
         closeTocModal();
+      } else if (appSidebar.classList.contains('open')) {
+        closeSidebar();
       } else if (currentViewMode === 'flashcard') {
         setViewMode('reading');
       } else if (document.activeElement === searchInput || document.activeElement === mobileSearchInput) {
@@ -1696,6 +1762,7 @@
 
   // Initialization
   initTheme();
+  initSidebarState();
   renderAll();
 
 })();
